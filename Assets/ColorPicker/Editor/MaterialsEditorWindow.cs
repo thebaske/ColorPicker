@@ -13,8 +13,8 @@ public class MaterialsEditorWindow : EditorWindow
     public int sharedMatsCount;
     GameObject currentSelected;
     private Color[] clr;
-    [SerializeField]private TextureData[] textures;
-    private Texture2D[] tex;
+    [SerializeField]private List<TextureData> textures;
+    private List<Texture2D> tex;
     private Texture2D atlas;
     private Vector2 scrolPos;
     public static void OpenMaterialsEditorWindow ()
@@ -46,22 +46,33 @@ public class MaterialsEditorWindow : EditorWindow
     {
         if (GUILayout.Button("Reset", GUILayout.MaxWidth(70)))
         {
-            textures = new TextureData[9];
-            for (int i = 0; i < textures.Length; i++)
+            textures = new List<TextureData>();
+            for (int i = 0; i < textures.Count; i++)
             {
                 textures[i] = new TextureData();
             }
         }
-        scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
-        if (textures is null || textures.Length < 9)
+
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("+", GUILayout.MaxWidth(70)))
         {
-            textures = new TextureData[8];
-            for (int i = 0; i < textures.Length; i++)
+            textures = new List<TextureData>();
+            for (int i = 0; i < textures.Count; i++)
             {
                 textures[i] = new TextureData();
             }
         }
-        for (int i = 0; i < textures.Length; i++)
+        EditorGUILayout.EndHorizontal();
+        scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
+        if (textures is null || textures.Count < 9)
+        {
+            textures = new List<TextureData>();
+            for (int i = 0; i < textures.Count; i++)
+            {
+                textures[i] = new TextureData();
+            }
+        }
+        for (int i = 0; i < textures.Count; i++)
         {
             
             textures[i].color =
@@ -76,7 +87,7 @@ public class MaterialsEditorWindow : EditorWindow
                     // renderer.sharedMaterial.mainTexture = textures[i].tex;
                     MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
                     Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
-                    float pixelValue = RemapValues(0, textures.Length - 1, 0.01f, 0.97f, i);
+                    float pixelValue = RemapValues(0, textures.Count - 1, 0.01f, 0.97f, i);
                     Debug.Log($"Pixel value {pixelValue}");
                     for (int j = 0; j < uv.Length; j++)
                     {
@@ -91,7 +102,7 @@ public class MaterialsEditorWindow : EditorWindow
         }
         if (GUILayout.Button("Pack", GUILayout.MaxWidth(70)))
         {
-            PackTextures(textures);
+            PackTextures(textures.ToArray());
         }
         atlas = (Texture2D)EditorGUILayout.ObjectField(atlas, typeof(Texture2D), false, GUILayout.Width(170), GUILayout.Height(170));
         // EditorGUILayout.BeginScrollView();
