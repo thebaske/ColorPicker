@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.UIElements;
 
 
 public class ColorPickerEditorWindow : EditorWindow
@@ -44,11 +47,32 @@ public class ColorPickerEditorWindow : EditorWindow
                     EditorGUILayout.ColorField(textures[counter].color, GUILayout.Width(50f), GUILayout.Height(30f));
                 // textures[i].SetColor();
                 GUI.backgroundColor = textures[counter].color;
-                if (GUILayout.Button($"Set {counter}", GUILayout.MaxWidth(50f), GUILayout.Height(50f)))
+                MeshFilter filtet = Selection.activeObject.GetComponent<MeshFilter>();
+                if (filtet != null)
                 {
-                    if (Selection.activeGameObject != null)
+
+                    if (filtet.sharedMesh.subMeshCount > 0)
                     {
-                        ModifyMeshUV(counter);
+                        for (int i = 0; i < filtet.sharedMesh.subMeshCount; i++)
+                        {
+                            if (GUILayout.Button($"Set {counter}", GUILayout.MaxWidth(50f), GUILayout.Height(50f)))
+                            {
+                                if (Selection.activeGameObject != null)
+                                {
+                                    ModifyMeshUV(counter, i);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (GUILayout.Button($"Set {counter}", GUILayout.MaxWidth(50f), GUILayout.Height(50f)))
+                        {
+                            if (Selection.activeGameObject != null)
+                            {
+                                ModifyMeshUV(counter);
+                            }
+                        }
                     }
                 }
                 EditorGUILayout.EndVertical();
@@ -70,7 +94,51 @@ public class ColorPickerEditorWindow : EditorWindow
         EditorGUILayout.EndScrollView();
         
     }
+    private void ModifyMeshUV(int counter, int submeshIndex_)
+    {
+        MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            renderer.sharedMaterial = useMat;
+            Material[] submeshMats = new Material[renderer.sharedMaterials.Length];
+            for (int i = 0; i < renderer.sharedMaterials.Length; i++)
+            {
+                submeshMats[i] = useMat;
+            }
 
+            renderer.sharedMaterials = submeshMats;
+            MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+            SubMeshDescriptor smDc = mf.sharedMesh.GetSubMesh(submeshIndex_);
+            List<int> indiciesOfSubmesn = new List<int>();
+            mf.sharedMesh.GetIndices(indiciesOfSubmesn, submeshIndex_);
+            mf.sharedMesh.GetTriangles(indiciesOfSubmesn, submeshIndex_);
+            for (int i = 0; i < indiciesOfSubmesn.Count; i++)
+            {
+                Debug.Log($"vertices {indiciesOfSubmesn[i]}");
+            }
+            int endIndex = smDc.vertexCount;
+            Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
+            float pixelValue = RemapValues(0, textures.Count - 1, 0f, 1f, counter);
+            Debug.Log($"Pixel value {pixelValue}");
+            for (int j = 0; j < uv.Length; j++)
+            {
+                if (indiciesOfSubmesn.Contains(j))
+                {
+                    uv[j] = new Vector2(pixelValue, 0f);
+                    indiciesOfSubmesn.Remove(j);
+                }
+                else
+                {
+                    uv[j] = mf.sharedMesh.uv[j];
+                }
+            }
+
+            mf.sharedMesh.uv = uv;
+            
+            renderer.sharedMaterial.mainTexture = atlas;
+            EditorUtility.SetDirty(Selection.activeGameObject);
+        }
+    }
     private void ModifyMeshUV(int counter)
     {
         MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
