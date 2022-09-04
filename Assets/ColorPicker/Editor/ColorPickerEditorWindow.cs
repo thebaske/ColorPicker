@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class ColorPickerEditorWindow : EditorWindow
 {
-    public MaterialsList matList;
+    
     Vector2 scrollPos;
     public int submeshIndex;
     public int sharedMatsCount;
@@ -15,58 +15,21 @@ public class ColorPickerEditorWindow : EditorWindow
     private List<Texture2D> tex;
     private Texture2D atlas;
     private Vector2 scrolPos;
+    public Material useMat;
     public static void OpenColorPickerEditorWindow ()
     {
         GetWindow<ColorPickerEditorWindow> ();
     }
     
-    public float LerpCustom(float a, float b, float t)
-    {
-        return (1.0f - t) * a + b * t;
-    }
-    public float InverseLerpCUstom(float a, float b, float v)
-    {
-        return (v - a) / (b - a);
-    }
-    /// <summary>
-    /// Takes two input parameters(iMin, iMax) and remaps those values to 
-    /// oMin and oMax by v.
-    /// if v == iMin output = oMin
-    /// if v == iMax output = oMax
-    /// </summary>    
-    public float RemapValues(float iMin, float iMax, float oMin, float oMax, float v)
-    {
-        float t = InverseLerpCUstom(iMin, iMax, v);
-        return LerpCustom(oMin, oMax, t);
-    }
+    
     
     private void OnGUI ()
     {
         
 
-        EditorGUILayout.BeginHorizontal();
-        if (GUILayout.Button("+", GUILayout.MaxWidth(70)))
-        {
-            if (textures != null)
-            {
-                
-            }
-            else
-            {
-                textures = new List<TextureData>();
-            }
-            textures.Add(new TextureData());
-        }
-        if (GUILayout.Button("-", GUILayout.MaxWidth(70)))
-        {
-            if (textures != null && textures.Count > 0)
-            {
-                textures.RemoveAt(textures.Count - 1);
-            }
-           
-        }
-        EditorGUILayout.EndHorizontal();
-        
+        DisplayControllButtons();
+        atlas = EditorGUILayout.ObjectField(atlas, typeof(Texture2D), false) as Texture2D;
+        if (textures is null || textures.Count <= 0) return;
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
 
         int counter = 0;
@@ -85,20 +48,7 @@ public class ColorPickerEditorWindow : EditorWindow
                 {
                     if (Selection.activeGameObject != null)
                     {
-                        MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
-                        // renderer.sharedMaterial.mainTexture = textures[i].tex;
-                        MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
-                        Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
-                        float pixelValue = RemapValues(0, textures.Count - 1, 0.01f, 0.97f, counter);
-                        Debug.Log($"Pixel value {pixelValue}");
-                        for (int j = 0; j < uv.Length; j++)
-                        {
-                            uv[j] = new Vector2(pixelValue, 0f);
-                        }
-
-                        mf.sharedMesh.uv = uv;
-                        renderer.sharedMaterial.mainTexture = atlas;
-                        EditorUtility.SetDirty(Selection.activeGameObject);
+                        ModifyMeshUV(counter);
                     }
                 }
                 EditorGUILayout.EndVertical();
@@ -119,6 +69,55 @@ public class ColorPickerEditorWindow : EditorWindow
         atlas = (Texture2D)EditorGUILayout.ObjectField(atlas, typeof(Texture2D), false, GUILayout.Width(170), GUILayout.Height(170));
         EditorGUILayout.EndScrollView();
         
+    }
+
+    private void ModifyMeshUV(int counter)
+    {
+        MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            renderer.sharedMaterial = useMat;
+            MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+            Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
+            float pixelValue = RemapValues(0, textures.Count - 1, 0.01f, 0.97f, counter);
+            Debug.Log($"Pixel value {pixelValue}");
+            for (int j = 0; j < uv.Length; j++)
+            {
+                uv[j] = new Vector2(pixelValue, 0f);
+            }
+
+            mf.sharedMesh.uv = uv;
+            renderer.sharedMaterial.mainTexture = atlas;
+            EditorUtility.SetDirty(Selection.activeGameObject);
+        }
+    }
+
+    private void DisplayControllButtons()
+    {
+        EditorGUILayout.BeginHorizontal();
+        if (GUILayout.Button("+", GUILayout.MaxWidth(70)))
+        {
+            if (textures != null)
+            {
+            }
+            else
+            {
+                textures = new List<TextureData>();
+            }
+
+            textures.Add(new TextureData());
+        }
+
+        if (GUILayout.Button("-", GUILayout.MaxWidth(70)))
+        {
+            if (textures != null && textures.Count > 0)
+            {
+                textures.RemoveAt(textures.Count - 1);
+            }
+        }
+
+        useMat = EditorGUILayout.ObjectField(useMat, typeof(Material), false) as Material;
+        EditorGUILayout.EndHorizontal();
     }
 
     private void PackTextures(TextureData[] datas)
@@ -148,62 +147,62 @@ public class ColorPickerEditorWindow : EditorWindow
         
         return result;
     }
-    private void MatToListManagement()
-    {
-        GUI.backgroundColor = Color.white;
-        if (GUILayout.Button("+"))
-        {
-            Material material = new Material(matList.allMaterials[0]);
-            AssetDatabase.CreateAsset(material, "Assets/MaterialCustomSelector//BaseMaterials/MyMaterial.mat");
-            matList.allMaterials.Add(material);
-        }
-        if (GUILayout.Button("-"))
-        {
-            matList.allMaterials.Remove(matList.allMaterials[matList.allMaterials.Count-1]);
-        }
-    }
-    private void DisplayMaterialPallette()
-    {
-        if (Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<MeshRenderer>() != null)
-        {
-            if (currentSelected != Selection.activeGameObject)
-            {
-                submeshIndex = 0;
-                currentSelected = Selection.activeGameObject;
-            }
-
-            MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
-            sharedMatsCount = renderer.sharedMaterials.Length;
-            if (renderer.sharedMaterials.Length > 1)
-            {
-                string btnName = $"materials: {Selection.activeGameObject.GetComponent<MeshRenderer>().sharedMaterials.Length} | edditing: {submeshIndex}";
-
-                if (GUILayout.Button(btnName))
-                {
-                    submeshIndex++;
-                    if (submeshIndex > Selection.activeGameObject.GetComponent<MeshRenderer>().sharedMaterials.Length - 1)
-                    {
-                        submeshIndex = 0;
-                    }
-                }
-            }
-        }
-        foreach (var item in matList.allMaterials)
-        {
-            if (item != null)
-            {
-                EditorGUILayout.BeginHorizontal();
-                GUI.backgroundColor = item.color;
-
-                if (GUILayout.Button(item.name, GUILayout.MaxWidth(70)))
-                {
-                    ProcessButtonClick(item);
-                }
-                var tmp = EditorGUILayout.ObjectField(item, typeof(Material), false, GUILayout.MaxWidth(70));
-                EditorGUILayout.EndHorizontal(); 
-            }
-        }
-    }
+    // private void MatToListManagement()
+    // {
+    //     GUI.backgroundColor = Color.white;
+    //     if (GUILayout.Button("+"))
+    //     {
+    //         Material material = new Material(matList.allMaterials[0]);
+    //         AssetDatabase.CreateAsset(material, "Assets/MaterialCustomSelector//BaseMaterials/MyMaterial.mat");
+    //         matList.allMaterials.Add(material);
+    //     }
+    //     if (GUILayout.Button("-"))
+    //     {
+    //         matList.allMaterials.Remove(matList.allMaterials[matList.allMaterials.Count-1]);
+    //     }
+    // }
+    // private void DisplayMaterialPallette()
+    // {
+    //     if (Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<MeshRenderer>() != null)
+    //     {
+    //         if (currentSelected != Selection.activeGameObject)
+    //         {
+    //             submeshIndex = 0;
+    //             currentSelected = Selection.activeGameObject;
+    //         }
+    //
+    //         MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
+    //         sharedMatsCount = renderer.sharedMaterials.Length;
+    //         if (renderer.sharedMaterials.Length > 1)
+    //         {
+    //             string btnName = $"materials: {Selection.activeGameObject.GetComponent<MeshRenderer>().sharedMaterials.Length} | edditing: {submeshIndex}";
+    //
+    //             if (GUILayout.Button(btnName))
+    //             {
+    //                 submeshIndex++;
+    //                 if (submeshIndex > Selection.activeGameObject.GetComponent<MeshRenderer>().sharedMaterials.Length - 1)
+    //                 {
+    //                     submeshIndex = 0;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     foreach (var item in matList.allMaterials)
+    //     {
+    //         if (item != null)
+    //         {
+    //             EditorGUILayout.BeginHorizontal();
+    //             GUI.backgroundColor = item.color;
+    //
+    //             if (GUILayout.Button(item.name, GUILayout.MaxWidth(70)))
+    //             {
+    //                 ProcessButtonClick(item);
+    //             }
+    //             var tmp = EditorGUILayout.ObjectField(item, typeof(Material), false, GUILayout.MaxWidth(70));
+    //             EditorGUILayout.EndHorizontal(); 
+    //         }
+    //     }
+    // }
     private void ProcessButtonClick(Material clickedMat)
     {
         for (int i = 0; i < Selection.gameObjects.Length; i++)
@@ -237,6 +236,25 @@ public class ColorPickerEditorWindow : EditorWindow
     private void NextSubmesh ()
     {
         submeshIndex++;
+    }
+    public float LerpCustom(float a, float b, float t)
+    {
+        return (1.0f - t) * a + b * t;
+    }
+    public float InverseLerpCUstom(float a, float b, float v)
+    {
+        return (v - a) / (b - a);
+    }
+    /// <summary>
+    /// Takes two input parameters(iMin, iMax) and remaps those values to 
+    /// oMin and oMax by v.
+    /// if v == iMin output = oMin
+    /// if v == iMax output = oMax
+    /// </summary>    
+    public float RemapValues(float iMin, float iMax, float oMin, float oMax, float v)
+    {
+        float t = InverseLerpCUstom(iMin, iMax, v);
+        return LerpCustom(oMin, oMax, t);
     }
 }
 [System.Serializable]
