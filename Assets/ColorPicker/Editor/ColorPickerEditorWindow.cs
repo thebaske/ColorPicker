@@ -1,11 +1,9 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Events;
 
-public class MaterialsEditorWindow : EditorWindow
+
+public class ColorPickerEditorWindow : EditorWindow
 {
     public MaterialsList matList;
     Vector2 scrollPos;
@@ -17,9 +15,9 @@ public class MaterialsEditorWindow : EditorWindow
     private List<Texture2D> tex;
     private Texture2D atlas;
     private Vector2 scrolPos;
-    public static void OpenMaterialsEditorWindow ()
+    public static void OpenColorPickerEditorWindow ()
     {
-        GetWindow<MaterialsEditorWindow> ();
+        GetWindow<ColorPickerEditorWindow> ();
     }
     
     public float LerpCustom(float a, float b, float t)
@@ -44,81 +42,81 @@ public class MaterialsEditorWindow : EditorWindow
     
     private void OnGUI ()
     {
-        if (GUILayout.Button("Reset", GUILayout.MaxWidth(70)))
-        {
-            textures = new List<TextureData>();
-            for (int i = 0; i < textures.Count; i++)
-            {
-                textures[i] = new TextureData();
-            }
-        }
+        
 
         EditorGUILayout.BeginHorizontal();
         if (GUILayout.Button("+", GUILayout.MaxWidth(70)))
         {
-            textures = new List<TextureData>();
-            for (int i = 0; i < textures.Count; i++)
+            if (textures != null)
             {
-                textures[i] = new TextureData();
+                
             }
+            else
+            {
+                textures = new List<TextureData>();
+            }
+            textures.Add(new TextureData());
+        }
+        if (GUILayout.Button("-", GUILayout.MaxWidth(70)))
+        {
+            if (textures != null && textures.Count > 0)
+            {
+                textures.RemoveAt(textures.Count - 1);
+            }
+           
         }
         EditorGUILayout.EndHorizontal();
+        
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
-        if (textures is null || textures.Count < 9)
-        {
-            textures = new List<TextureData>();
-            for (int i = 0; i < textures.Count; i++)
-            {
-                textures[i] = new TextureData();
-            }
-        }
-        for (int i = 0; i < textures.Count; i++)
+
+        int counter = 0;
+        while (counter < textures.Count)
         {
             
-            textures[i].color =
-                EditorGUILayout.ColorField(textures[i].color, GUILayout.Width(50f), GUILayout.Height(50f));
-            // textures[i].SetColor();
-            GUI.backgroundColor = textures[i].color;
-            if (GUILayout.Button($"Set {i}", GUILayout.MaxWidth(70)))
+            EditorGUILayout.BeginHorizontal();
+            for (int k = 0; k < 4; k++)
             {
-                if (Selection.activeGameObject != null)
+                EditorGUILayout.BeginVertical();
+                textures[counter].color =
+                    EditorGUILayout.ColorField(textures[counter].color, GUILayout.Width(50f), GUILayout.Height(30f));
+                // textures[i].SetColor();
+                GUI.backgroundColor = textures[counter].color;
+                if (GUILayout.Button($"Set {counter}", GUILayout.MaxWidth(50f), GUILayout.Height(50f)))
                 {
-                    MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
-                    // renderer.sharedMaterial.mainTexture = textures[i].tex;
-                    MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
-                    Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
-                    float pixelValue = RemapValues(0, textures.Count - 1, 0.01f, 0.97f, i);
-                    Debug.Log($"Pixel value {pixelValue}");
-                    for (int j = 0; j < uv.Length; j++)
+                    if (Selection.activeGameObject != null)
                     {
-                        uv[j] = new Vector2(pixelValue, 0f);
-                    }
+                        MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
+                        // renderer.sharedMaterial.mainTexture = textures[i].tex;
+                        MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+                        Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
+                        float pixelValue = RemapValues(0, textures.Count - 1, 0.01f, 0.97f, counter);
+                        Debug.Log($"Pixel value {pixelValue}");
+                        for (int j = 0; j < uv.Length; j++)
+                        {
+                            uv[j] = new Vector2(pixelValue, 0f);
+                        }
 
-                    mf.sharedMesh.uv = uv;
-                    renderer.sharedMaterial.mainTexture = atlas;
-                    EditorUtility.SetDirty(Selection.activeGameObject);
+                        mf.sharedMesh.uv = uv;
+                        renderer.sharedMaterial.mainTexture = atlas;
+                        EditorUtility.SetDirty(Selection.activeGameObject);
+                    }
+                }
+                EditorGUILayout.EndVertical();
+                counter++;
+                if (counter > textures.Count - 1)
+                {
+                    break;
                 }
             }
+            EditorGUILayout.EndHorizontal();
+            
         }
+        
         if (GUILayout.Button("Pack", GUILayout.MaxWidth(70)))
         {
             PackTextures(textures.ToArray());
         }
         atlas = (Texture2D)EditorGUILayout.ObjectField(atlas, typeof(Texture2D), false, GUILayout.Width(170), GUILayout.Height(170));
-        // EditorGUILayout.BeginScrollView();
-        // for (int i = 0; i < clr.Length; i++)
-        // {
-        //     clr[i] = EditorGUILayout.ColorField(clr[i], GUILayout.Width(50f), GUILayout.Height(50f));
-        //     tex[i] = new Texture2D(50, 50);
-        //
-        //     
-        // }
-        
-        // for (int q = 0; q < clr.Length; q++)
-        // {
-        //    
-        // }
-        // TextureField(clr.ToString(), tex);
         EditorGUILayout.EndScrollView();
         
     }

@@ -9,7 +9,7 @@ public class MaterialWindowOppener : MonoBehaviour
     [MenuItem("MyMenu/Materials window %g")]
     static void DoSomethingWithAShortcutKey()
     {
-       EditorWindow.GetWindow(typeof(MaterialsEditorWindow));
+       EditorWindow.GetWindow(typeof(ColorPickerEditorWindow));
     }
     [MenuItem("Scenes/Knife")]
     static void OpenSceneKnife()
