@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
@@ -165,17 +166,18 @@ public class ColorPickerEditorWindow : EditorWindow
             SubMeshDescriptor smDc = mf.sharedMesh.GetSubMesh(submeshIndex_);
             Debug.LogError($"index count = {smDc.indexCount}, start index {smDc.indexStart} base vertex {smDc.baseVertex}  first vertex {smDc.firstVertex} vertex count {smDc.vertexCount}");
             List<int> indiciesOfSubmesn = new List<int>();
-            mf.sharedMesh.GetIndices(indiciesOfSubmesn, submeshIndex_);
-            // mf.sharedMesh.GetTriangles(indiciesOfSubmesn, submeshIndex_);
+            // mf.sharedMesh.GetIndices(indiciesOfSubmesn, submeshIndex_);
+            mf.sharedMesh.GetTriangles(indiciesOfSubmesn, submeshIndex_);
+            // indiciesOfSubmesn = mf.sharedMesh.triangles.ToList();
             
-          
             int endIndex = smDc.vertexCount;
             // Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
             Vector3[] uv = mf.sharedMesh.vertices;
             Vector2[] uvsConverted = mf.sharedMesh.uv;
-            // float pixelValue = RemapValues(0, textures.Count - 1, 0f, 1f, counter);
-            float pixelValue = counter / atlas.width;
+            float pixelValue = RemapValues(0, textures.Count - 1, 0f, 1f, counter);
+            // float pixelValue = counter / atlas.width;
             // Debug.Log($"Pixel value {pixelValue}");
+            
             for (int j = 0; j < mf.sharedMesh.vertices.Length; j++)
             {
                 if (indiciesOfSubmesn.Contains(j))
@@ -186,8 +188,9 @@ public class ColorPickerEditorWindow : EditorWindow
                     {
                         
                     }
-                    uvsConverted[j] = new Vector2(uvSelected, 1f);
-                    indiciesOfSubmesn.Remove(j);
+                    
+                    uvsConverted[j] = new Vector2(uvSelected, 0.1267f);
+                    // indiciesOfSubmesn.Remove(j);
                 }
                 else
                 {
@@ -195,7 +198,7 @@ public class ColorPickerEditorWindow : EditorWindow
                 }
                 
             }
-
+            
             mf.sharedMesh.uv = uvsConverted;
             
             renderer.sharedMaterial.mainTexture = atlas;
@@ -255,7 +258,7 @@ public class ColorPickerEditorWindow : EditorWindow
     {
         
         int atlasSizeX = (datas.Length - 1) * 100;
-        atlas = new Texture2D(atlasSizeX, 1);
+        atlas = new Texture2D(atlasSizeX, atlasSizeX);
         Color32[] atlasColors = atlas.GetPixels32();
         int colorCounter = 0;
         for (int i = 0; i < atlasColors.Length; i++)
