@@ -33,7 +33,10 @@ public class ColorPickerEditorWindow : EditorWindow
     
     private void OnGUI ()
     {
-
+        if (useMat is null)
+        {
+            useMat = Resources.Load<Material>("SharedAtlas");
+        }
         uvSelected = EditorGUILayout.FloatField("uv", uvSelected, GUILayout.Width(250f), GUILayout.Height(25));
         submeshIndexDirect = EditorGUILayout.IntField("sub", submeshIndexDirect, GUILayout.Width(250f), GUILayout.Height(25));
         ModifyMeshUVDirect(0, submeshIndexDirect);
@@ -144,66 +147,76 @@ public class ColorPickerEditorWindow : EditorWindow
             }
 
             mf.sharedMesh.uv = uv;
-            
-            renderer.sharedMaterial.mainTexture = atlas;
+
+            if (atlas != null)
+            {
+                renderer.sharedMaterial.mainTexture = atlas;
+            }
             EditorUtility.SetDirty(Selection.activeGameObject);
         }
     }
     private void ModifyMeshUVDirect(int counter, int submeshIndex_)
     {
-        MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
-        if (renderer != null)
+        if (Selection.activeGameObject != null)
         {
-            renderer.sharedMaterial = useMat;
-            Material[] submeshMats = new Material[renderer.sharedMaterials.Length];
-            for (int i = 0; i < renderer.sharedMaterials.Length; i++)
-            {
-                submeshMats[i] = useMat;
-            }
-
-            renderer.sharedMaterials = submeshMats;
-            MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
-            SubMeshDescriptor smDc = mf.sharedMesh.GetSubMesh(submeshIndex_);
-            Debug.LogError($"index count = {smDc.indexCount}, start index {smDc.indexStart} base vertex {smDc.baseVertex}  first vertex {smDc.firstVertex} vertex count {smDc.vertexCount}");
-            List<int> indiciesOfSubmesn = new List<int>();
-            // mf.sharedMesh.GetIndices(indiciesOfSubmesn, submeshIndex_);
-            mf.sharedMesh.GetTriangles(indiciesOfSubmesn, submeshIndex_);
-            // indiciesOfSubmesn = mf.sharedMesh.triangles.ToList();
-            
-            int endIndex = smDc.vertexCount;
-            // Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
-            Vector3[] uv = mf.sharedMesh.vertices;
-            Vector2[] uvsConverted = mf.sharedMesh.uv;
-            float pixelValue = RemapValues(0, textures.Count - 1, 0f, 1f, counter);
-            // float pixelValue = counter / atlas.width;
-            // Debug.Log($"Pixel value {pixelValue}");
-            
-            for (int j = 0; j < mf.sharedMesh.vertices.Length; j++)
-            {
-                if (indiciesOfSubmesn.Contains(j))
-                {
-                    // uvSelected = pixelValue;
-                    float result = 0f;
-                    if (uvSelected < 0.125f)
+            MeshRenderer renderer = Selection.activeGameObject.GetComponent<MeshRenderer>();
+                    if (renderer != null)
                     {
+                        renderer.sharedMaterial = useMat;
+                        Material[] submeshMats = new Material[renderer.sharedMaterials.Length];
+                        for (int i = 0; i < renderer.sharedMaterials.Length; i++)
+                        {
+                            submeshMats[i] = useMat;
+                        }
+            
+                        renderer.sharedMaterials = submeshMats;
+                        MeshFilter mf = Selection.activeGameObject.GetComponent<MeshFilter>();
+                        SubMeshDescriptor smDc = mf.sharedMesh.GetSubMesh(submeshIndex_);
                         
+                        List<int> indiciesOfSubmesn = new List<int>();
+                        // mf.sharedMesh.GetIndices(indiciesOfSubmesn, submeshIndex_);
+                        mf.sharedMesh.GetTriangles(indiciesOfSubmesn, submeshIndex_);
+                        // indiciesOfSubmesn = mf.sharedMesh.triangles.ToList();
+                        
+                        int endIndex = smDc.vertexCount;
+                        // Vector2[] uv = new Vector2[mf.sharedMesh.uv.Length];
+                        Vector3[] uv = mf.sharedMesh.vertices;
+                        Vector2[] uvsConverted = mf.sharedMesh.uv;
+                        float pixelValue = RemapValues(0, textures.Count - 1, 0f, 1f, counter);
+                        // float pixelValue = counter / atlas.width;
+                        // Debug.Log($"Pixel value {pixelValue}");
+                        
+                        for (int j = 0; j < mf.sharedMesh.vertices.Length; j++)
+                        {
+                            if (indiciesOfSubmesn.Contains(j))
+                            {
+                                // uvSelected = pixelValue;
+                                float result = 0f;
+                                if (uvSelected < 0.125f)
+                                {
+                                    
+                                }
+                                
+                                uvsConverted[j] = new Vector2(uvSelected, 0.1267f);
+                                // indiciesOfSubmesn.Remove(j);
+                            }
+                            else
+                            {
+                                uvsConverted[j] = mf.sharedMesh.uv[j];
+                            }
+                            
+                        }
+                        
+                        mf.sharedMesh.uv = uvsConverted;
+            
+                        if (atlas != null)
+                        {
+                            renderer.sharedMaterial.mainTexture = atlas;
+                        }
+                        EditorUtility.SetDirty(Selection.activeGameObject);
                     }
-                    
-                    uvsConverted[j] = new Vector2(uvSelected, 0.1267f);
-                    // indiciesOfSubmesn.Remove(j);
-                }
-                else
-                {
-                    uvsConverted[j] = mf.sharedMesh.uv[j];
-                }
-                
-            }
-            
-            mf.sharedMesh.uv = uvsConverted;
-            
-            renderer.sharedMaterial.mainTexture = atlas;
-            EditorUtility.SetDirty(Selection.activeGameObject);
         }
+        
     }
     private void ModifyMeshUV(int counter)
     {
